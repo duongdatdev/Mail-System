@@ -1,0 +1,7 @@
+FROM:user1@localhost
+TO:user2@localhost
+SUBJECT:1
+TIME:2025-10-15 21:49:04
+BODY:
+1
+.

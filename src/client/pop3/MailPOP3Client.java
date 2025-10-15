@@ -5,25 +5,31 @@ import java.net.Socket;
 
 /** Lists and retrieves mails from the POP3 server. */
 public class MailPOP3Client {
-    public void listAndRead(String host, int port, int id) throws IOException {
+    public String listAndRead(String host, int port, String user, int id) throws IOException {
+        StringBuilder sb = new StringBuilder();
         try (Socket s = new Socket(host, port);
              BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
              BufferedWriter out = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()))) {
 
-            System.out.println("[POP3-Client] " + in.readLine());
-            out.write("USER demo\r\n"); out.flush(); in.readLine();
-            out.write("PASS demo\r\n"); out.flush(); in.readLine();
+            String banner = in.readLine();
+            sb.append(banner).append("\n");
+            out.write("USER " + user + "\r\n"); out.flush(); sb.append(in.readLine()).append("\n");
+            out.write("PASS demo\r\n"); out.flush(); sb.append(in.readLine()).append("\n");
 
             out.write("LIST\r\n"); out.flush();
             String line;
-            while (!(line = in.readLine()).equals(".")) System.out.println(line);
+            while (!(line = in.readLine()).equals(".")) {
+                sb.append(line).append("\n");
+            }
 
             if (id > 0) {
                 out.write("RETR " + id + "\r\n"); out.flush();
-                System.out.println("[POP3-Client] Message " + id + ":");
-                while (!(line = in.readLine()).equals(".")) System.out.println(line);
+                sb.append("[POP3-Client] Message ").append(id).append(":\n");
+                while (!(line = in.readLine()).equals(".")) sb.append(line).append("\n");
             }
             out.write("QUIT\r\n"); out.flush();
+            sb.append(in.readLine()).append("\n");
         }
+        return sb.toString();
     }
 }

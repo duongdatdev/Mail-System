@@ -14,12 +14,16 @@ public class MailClientUI extends JFrame {
 
     private final MailClient client;
     private final JTextArea logArea;
+    private String userAddress = "user@localhost";
 
     public MailClientUI() {
         super("Java Mail Client (Swing Edition)");
 
-        // Connect to localhost server
-        client = new MailClient("127.0.0.1", 2525, 1110);
+    // Ask user for their email address to use as the From field and mailbox for POP3
+    String address = JOptionPane.showInputDialog(this, "Enter your email address (used as mailbox):", "user@localhost");
+    if (address != null && !address.trim().isEmpty()) userAddress = address.trim();
+    // Connect to localhost server (client knows the user's address for POP3)
+    client = new MailClient("127.0.0.1", 2525, 1110, userAddress);
         logArea = new JTextArea(10, 50);
         logArea.setEditable(false);
 
@@ -50,7 +54,8 @@ public class MailClientUI extends JFrame {
 
     /** Open dialog to send a new mail. */
     private void openSendDialog() {
-        JTextField fromField = new JTextField();
+    JTextField fromField = new JTextField();
+    fromField.setText(userAddress);
         JTextField toField = new JTextField();
         JTextField subjectField = new JTextField();
         JTextArea bodyArea = new JTextArea(5, 30);
@@ -95,7 +100,8 @@ public class MailClientUI extends JFrame {
 
         try {
             int id = Integer.parseInt(input.trim());
-            client.listAndRead(id);
+            String out = client.listAndRead(id);
+            logArea.append(out);
             logArea.append("📥 Listed/Read message id " + id + "\n");
         } catch (Exception ex) {
             logArea.append("❌ Error reading mail: " + ex.getMessage() + "\n");

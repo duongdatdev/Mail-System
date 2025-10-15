@@ -72,4 +72,9 @@ public class Mail implements Serializable {
                 "\r\n\r\n" + body + "\r\n";
     }
 
+    @Override
+    public String toString() {
+        return "Mail{from='" + from + "', to='" + to + "', subject='" + subject + "', sentAt='" + sentAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + "'}";
+    }
+
 }
