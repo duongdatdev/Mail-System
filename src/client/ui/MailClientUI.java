@@ -9,6 +9,7 @@ import java.awt.*;
 /**
  * Swing UI for the Java Mail Client.
  * Allows sending and receiving mail through GUI buttons.
+ * Now includes digital signature verification display.
  */
 public class MailClientUI extends JFrame {
 
@@ -101,11 +102,39 @@ public class MailClientUI extends JFrame {
         try {
             int id = Integer.parseInt(input.trim());
             String out = client.listAndRead(id);
+            
+            // Parse the output to extract signature information
+            String signatureStatus = extractSignatureStatus(out);
+            
             logArea.append(out);
-            logArea.append("📥 Listed/Read message id " + id + "\n");
+            if (!signatureStatus.isEmpty()) {
+                logArea.append("� " + signatureStatus + "\n");
+            }
+            logArea.append("�📥 Listed/Read message id " + id + "\n");
         } catch (Exception ex) {
             logArea.append("❌ Error reading mail: " + ex.getMessage() + "\n");
         }
+    }
+
+    /**
+     * Extract and display signature verification status from email response.
+     * Looks for X-Signature-Status header in the email.
+     */
+    private String extractSignatureStatus(String emailResponse) {
+        if (emailResponse.contains("X-Signature-Status:")) {
+            String[] lines = emailResponse.split("\n");
+            for (String line : lines) {
+                if (line.contains("X-Signature-Status:")) {
+                    String status = line.substring(line.indexOf("X-Signature-Status:") + "X-Signature-Status:".length()).trim();
+                    if (status.contains("VALID")) {
+                        return "✅ Digital Signature VALID - Email authenticated";
+                    } else if (status.contains("INVALID")) {
+                        return "⚠️ Digital Signature INVALID - Email may be tampered!";
+                    }
+                }
+            }
+        }
+        return "";
     }
 
     public static void main(String[] args) {

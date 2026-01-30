@@ -1,9 +1,11 @@
 package server.pop3;
 
 import model.Mail;
+import security.DigitalSignature;
 
 import java.io.*;
 import java.net.Socket;
+import java.security.PublicKey;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -13,6 +15,33 @@ public class Pop3Handler implements Runnable {
     private final Socket socket;
 
     public Pop3Handler(Socket socket) { this.socket = socket; }
+
+    /**
+     * Verifies the digital signature of a mail.
+     * @param mail The mail to verify
+     * @return true if signature is valid or not present, false if invalid
+     */
+    private boolean verifyMailSignature(Mail mail) {
+        if (mail.getSignature() == null || mail.getSenderPublicKey() == null) {
+            return true; // No signature to verify
+        }
+
+        try {
+            String mailContent = mail.getFrom() + mail.getTo() + mail.getSubject() + mail.getBody();
+            PublicKey publicKey = DigitalSignature.importPublicKey(mail.getSenderPublicKey());
+            boolean isValid = DigitalSignature.verifyMailSignature(mailContent, mail.getSignature(), publicKey);
+            
+            if (isValid) {
+                LOG.info("[POP3] Digital signature verified for mail from: " + mail.getFrom());
+            } else {
+                LOG.warning("[POP3] Digital signature INVALID for mail from: " + mail.getFrom());
+            }
+            return isValid;
+        } catch (Exception e) {
+            LOG.log(Level.WARNING, "[POP3] Failed to verify signature: " + e.getMessage(), e);
+            return false;
+        }
+    }
 
     @Override
     public void run() {
@@ -53,7 +82,11 @@ public class Pop3Handler implements Runnable {
                             Mail mail = server.storage.MailStorage.get(currentUser, id);
                             if (mail == null) out.write("-ERR No such message\r\n");
                             else {
+                                boolean signatureValid = verifyMailSignature(mail);
                                 out.write("+OK\r\n");
+                                if (mail.getSignature() != null && !mail.getSignature().isEmpty()) {
+                                    out.write("X-Signature-Status: " + (signatureValid ? "VALID" : "INVALID") + "\r\n");
+                                }
                                 out.write(mail.renderRaw());
                                 out.write(".\r\n");
                             }
